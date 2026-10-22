@@ -1,9 +1,7 @@
 ﻿/* =====================================================================
-   Paso 1 (carga): Catalogo inicial de configuraciones
    Origen: configuraciones propias de YASB (config.yaml + styles.css) y GlazeWM.
    - Las claves y datos personales tienen por marcadores (TU_API_KEY,
      TU_TOKEN_DE_GITHUB, TU_CIUDAD).
-   - Ejecutar UNA sola vez, despues de 01_modelo_datos.sql.
    ===================================================================== */
 USE DesktopConfigDB;
 
