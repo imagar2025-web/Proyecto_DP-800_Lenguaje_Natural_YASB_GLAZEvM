@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Asistente de configuraciones de escritorio · YASB y GlazeWM</title>
+    <meta
+      name="description"
+      content="Describe en lenguaje natural cómo quieres tu escritorio de Windows y obtén la configuración de YASB y GlazeWM lista para copiar y pegar."
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app" v-cloak>
+      <header class="cabecera">
+        <h1 class="cabecera__titulo">
+          Asistente de configuraciones de escritorio
+        </h1>
+        <p class="cabecera__subtitulo">
+          Personaliza tu Windows con YASB y GlazeWM contándome lo que quieres.
+        </p>
+      </header>
+
+      <main class="contenido">
+        <!-- Buscador -->
+        <section class="buscador" aria-labelledby="buscador-titulo">
+          <h2 id="buscador-titulo" class="buscador__titulo">
+            ¿Qué quieres en tu escritorio?
+          </h2>
+
+          <form class="formulario" @submit.prevent="consultar">
+            <div class="campo">
+              <label for="pregunta" class="campo__etiqueta">Tu petición</label>
+              <textarea
+                id="pregunta"
+                class="campo__entrada"
+                v-model="pregunta"
+                rows="3"
+                maxlength="500"
+                required
+                placeholder="Por ejemplo: una barra con el clima de mi ciudad y notificaciones"
+              ></textarea>
+              <p class="campo__ayuda">{{ restantes }} caracteres restantes</p>
+            </div>
+
+            <div class="campo">
+              <label for="herramienta" class="campo__etiqueta"
+                >Herramienta</label
+              >
+              <select
+                id="herramienta"
+                class="campo__selector"
+                v-model="herramienta"
+              >
+                <option value="">Cualquiera</option>
+                <option value="YASB">YASB (barra superior)</option>
+                <option value="GlazeWM">GlazeWM (gestor de ventanas)</option>
+              </select>
+            </div>
+
+            <div class="formulario__acciones">
+              <button
+                type="submit"
+                class="boton boton--principal"
+                :disabled="cargando || !pregunta.trim()"
+              >
+                {{ cargando ? 'Buscando…' : 'Obtener configuración' }}
+              </button>
+              <button
+                type="button"
+                class="boton boton--secundario"
+                @click="limpiar"
+                :disabled="cargando"
+              >
+                Limpiar
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Ejemplos de peticiones -->
+        <section
+          class="ejemplos"
+          aria-labelledby="ejemplos-titulo"
+          v-if="ejemplos.length"
+        >
+          <h2 id="ejemplos-titulo" class="ejemplos__titulo">
+            Prueba con un ejemplo
+          </h2>
+          <ul class="ejemplos__lista">
+            <li
+              class="ejemplos__item"
+              v-for="e in ejemplos"
+              :key="e.peticion_id"
+            >
+              <button
+                type="button"
+                class="boton boton--ejemplo"
+                @click="usarEjemplo(e.texto)"
+                :disabled="cargando"
+              >
+                {{ e.texto }}
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Resultado -->
+        <section
+          class="resultado"
+          aria-labelledby="resultado-titulo"
+          aria-live="polite"
+          v-if="cargando || error || resultado"
+        >
+          <h2 id="resultado-titulo" class="resultado__titulo">Resultado</h2>
+
+          <p class="estado estado--cargando" role="status" v-if="cargando">
+            Consultando… la primera petición puede tardar unos segundos mientras
+            se carga el modelo.
+          </p>
+
+          <p class="estado estado--error" role="alert" v-else-if="error">
+            {{ error }}
+          </p>
+
+          <div class="resultado__contenido" v-else-if="resultado">
+            <article
+              class="explicacion"
+              :class="{ 'explicacion--aviso': !resultado.llm_ok }"
+            >
+              <h3 class="explicacion__titulo">Explicación</h3>
+              <p class="explicacion__texto">{{ resultado.explicacion }}</p>
+            </article>
+
+            <section
+              class="configuraciones"
+              aria-labelledby="configuraciones-titulo"
+            >
+              <h3 id="configuraciones-titulo" class="configuraciones__titulo">
+                Configuraciones encontradas
+              </h3>
+
+              <p
+                class="estado estado--vacio"
+                v-if="!resultado.configuraciones.length"
+              >
+                No hay configuraciones para mostrar.
+              </p>
+
+              <article
+                class="configuracion"
+                v-for="c in resultado.configuraciones"
+                :key="c.configuracion_id"
+              >
+                <header class="configuracion__cabecera">
+                  <h4 class="configuracion__titulo">{{ c.titulo }}</h4>
+                  <span class="etiqueta etiqueta--herramienta"
+                    >{{ c.herramienta }}</span
+                  >
+                </header>
+
+                <p class="configuracion__descripcion">{{ c.descripcion }}</p>
+
+                <div class="codigo codigo--yaml" v-if="c.codigo_yaml">
+                  <div class="codigo__cabecera">
+                    <h5 class="codigo__nombre">config.yaml</h5>
+                    <button
+                      type="button"
+                      class="boton boton--copiar"
+                      @click="copiar(c.codigo_yaml, c.configuracion_id + '-yaml')"
+                    >
+                      {{ copiado === c.configuracion_id + '-yaml' ? 'Copiado' :
+                      'Copiar' }}
+                    </button>
+                  </div>
+                  <pre
+                    class="codigo__bloque"
+                  ><code>{{ c.codigo_yaml }}</code></pre>
+                </div>
+
+                <div class="codigo codigo--css" v-if="c.codigo_css">
+                  <div class="codigo__cabecera">
+                    <h5 class="codigo__nombre">styles.css</h5>
+                    <button
+                      type="button"
+                      class="boton boton--copiar"
+                      @click="copiar(c.codigo_css, c.configuracion_id + '-css')"
+                    >
+                      {{ copiado === c.configuracion_id + '-css' ? 'Copiado' :
+                      'Copiar' }}
+                    </button>
+                  </div>
+                  <pre
+                    class="codigo__bloque"
+                  ><code>{{ c.codigo_css }}</code></pre>
+                </div>
+
+                <p class="configuracion__metrica">
+                  Distancia: {{ Number(c.distancia).toFixed(3) }}
+                </p>
+              </article>
+            </section>
+          </div>
+        </section>
+      </main>
+
+      <footer class="pie">
+        <p class="pie__texto">
+          Proyecto DP-800 · Búsqueda híbrida y RAG con SQL Server 2025
+        </p>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
