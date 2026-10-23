@@ -1,7 +1,7 @@
 const { createApp, ref, computed, onMounted } = Vue;
 
 // Pon esto en false cuando la API Express esté lista
-const USAR_DATOS_DE_PRUEBA = true;
+const USAR_DATOS_DE_PRUEBA = false;
 const API_BASE = '/api';
 const MAX_CARACTERES = 500;
 

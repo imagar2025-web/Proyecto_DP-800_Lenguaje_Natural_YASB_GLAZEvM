@@ -1,4 +1,24 @@
 localhost:8443 {
     tls internal
-    reverse_proxy localhost:11434
+
+    handle /api/chat* {
+        reverse_proxy localhost:11434
+    }
+
+    handle /api/embed* {
+        reverse_proxy localhost:11434
+    }
+
+    handle /api/rag* {
+        reverse_proxy localhost:3000
+    }
+
+    handle /api/ejemplos* {
+        reverse_proxy localhost:3000
+    }
+
+    handle {
+        root * C:\Users\Ivi_dev\Desktop\Proyecto_DP-800\Proyecto_DP-800_Lenguaje_Natural_YASB_GLAZEvM\frontend
+        file_server
+    }
 }
